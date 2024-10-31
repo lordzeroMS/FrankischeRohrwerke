@@ -1,5 +1,6 @@
 import aiohttp
 import async_timeout
+import requests
 import xmltodict
 import time
 from homeassistant.components.sensor import SensorEntity, SensorDeviceClass
