@@ -1,6 +1,5 @@
 import requests
-from homeassistant.components.number import NumberEntity
-from homeassistant.const import DEVICE_CLASS_POWER
+from homeassistant.components.number import NumberEntity, NumberDeviceClass
 from .const import DOMAIN, CONF_IP_ADDRESS
 
 async def async_setup_entry(hass, entry, async_add_entities):
@@ -16,7 +15,7 @@ class LueftungsanlageRegler(NumberEntity):
         self._attr_native_min_value = 1
         self._attr_native_max_value = 4
         self._attr_native_step = 1
-        self._attr_device_class = DEVICE_CLASS_POWER
+        self._attr_device_class = NumberDeviceClass.POWER
 
     @property
     def name(self):
@@ -26,7 +25,7 @@ class LueftungsanlageRegler(NumberEntity):
     def unique_id(self):
         return f"{self._entry_id}_regler"
 
-    async def async_set_value(self, value):
+    async def async_set_native_value(self, value):
         if 1 <= value <= 4:
             await self._hass.async_add_executor_job(
                 requests.get, f"http://{self._ip_address}/stufe.cgi?stufe={value}"
