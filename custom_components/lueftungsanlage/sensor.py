@@ -20,7 +20,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     ]
     async_add_entities(sensors)
     await LueftungsanlageSensor.update_all_sensors(sensors)
-    async_add_entities([LueftungsanlageRegler(hass, ip_address, entry.entry_id, sensors[0])])
+
 
 class LueftungsanlageSensor(SensorEntity):
     _shared_data = None
