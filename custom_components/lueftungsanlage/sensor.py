@@ -34,6 +34,7 @@ class LueftungsanlageSensor(SensorEntity):
         self._entry_id = entry_id
         self._state = None
         self._attr_device_class = SensorDeviceClass.TEMPERATURE if "Temperatur" in name else None
+        self._attr_unit_of_measurement = "°C" if "Temperatur" in name else None
 
     @property
     def name(self):
@@ -46,6 +47,10 @@ class LueftungsanlageSensor(SensorEntity):
     @property
     def unique_id(self):
         return f"{self._entry_id}_{self._sensor_type}"
+
+    @property
+    def unit_of_measurement(self):
+        return self._attr_unit_of_measurement
 
     @classmethod
     async def update_all_sensors(cls, sensors):
@@ -89,7 +94,7 @@ class LueftungsanlageRegler(NumberEntity):
 
     @property
     def unique_id(self):
-        return f"{self._entry_id}_regler"
+        return f"{self._entry_id}_regler_2"
 
     async def async_set_native_value(self, value):
         if 1 <= value <= 4:
