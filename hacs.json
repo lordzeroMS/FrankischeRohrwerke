@@ -1,8 +1,3 @@
 {
-  "name": "FrankischeRohrwerke",
-  "content_in_root": false,
-  "domains": ["lueftungsanlage"],
-  "country": "DE",
-  "homeassistant": "2023.10.0",
-  "render_readme": true
+  "name": "FrankischeRohrwerke"
 }
