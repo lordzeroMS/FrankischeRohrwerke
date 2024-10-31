@@ -31,7 +31,9 @@ class LueftungsanlageRegler(NumberEntity):
     def value(self):
         return self._value
 
-    def set_value(self, value):
+    async def async_set_value(self, value):
         if 1 <= value <= 4:
-            requests.get(f"http://{self._ip_address}/stufe.cgi?stufe={value}")
+            await hass.async_add_executor_job(
+                requests.get, f"http://{self._ip_address}/stufe.cgi?stufe={value}"
+            )
             self._value = value
