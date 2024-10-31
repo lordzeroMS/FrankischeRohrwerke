@@ -1,0 +1,9 @@
+{
+  "domain": "lueftungsanlage",
+  "name": "Lüftungsanlage",
+  "version": "1.0.0",
+  "config_flow": true,
+  "requirements": ["xmltodict"],
+  "dependencies": [],
+  "codeowners": ["@dein_github_username"]
+}
