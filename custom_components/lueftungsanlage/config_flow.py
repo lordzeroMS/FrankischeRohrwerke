@@ -16,7 +16,7 @@ class LueftungsanlageConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="user",
             data_schema=vol.Schema({
-                vol.Required(CONF_IP_ADDRESS): str
+                vol.Required(CONF_IP_ADDRESS, description={"suggested_value": "Frankische Rohrwerke IP"}): str
             })
         )
 
@@ -31,6 +31,6 @@ class LueftungsanlageOptionsFlowHandler(config_entries.OptionsFlow):
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema({
-                vol.Required(CONF_IP_ADDRESS, default=self.config_entry.data.get(CONF_IP_ADDRESS)): str
+                vol.Required(CONF_IP_ADDRESS, default=self.config_entry.data.get(CONF_IP_ADDRESS), description={"suggested_value": "Frankische Rohrwerke IP"}): str
             })
         )
