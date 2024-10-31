@@ -3,6 +3,7 @@ import async_timeout
 import xmltodict
 import time
 from homeassistant.components.sensor import SensorEntity, SensorDeviceClass
+from homeassistant.components.number import NumberEntity, NumberDeviceClass
 from .const import DOMAIN, CONF_IP_ADDRESS
 
 async def async_setup_entry(hass, entry, async_add_entities):
@@ -18,6 +19,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     ]
     async_add_entities(sensors)
     await LueftungsanlageSensor.update_all_sensors(sensors)
+    async_add_entities([LueftungsanlageRegler(hass, ip_address, entry.entry_id, sensors[0])])
 
 class LueftungsanlageSensor(SensorEntity):
     _shared_data = None
@@ -67,3 +69,35 @@ class LueftungsanlageSensor(SensorEntity):
 
     async def async_update(self):
         await self.update_all_sensors([self])
+
+class LueftungsanlageRegler(NumberEntity):
+    def __init__(self, hass, ip_address, entry_id, sensor):
+        self._hass = hass
+        self._ip_address = ip_address
+        self._entry_id = entry_id
+        self._sensor = sensor
+        self._attr_native_value = 1  # Default stage
+        self._attr_native_min_value = 1
+        self._attr_native_max_value = 4
+        self._attr_native_step = 1
+        self._attr_device_class = NumberDeviceClass.POWER
+
+    @property
+    def name(self):
+        return "Lüftungsanlage Regler"
+
+    @property
+    def unique_id(self):
+        return f"{self._entry_id}_regler"
+
+    async def async_set_native_value(self, value):
+        if 1 <= value <= 4:
+            await self._hass.async_add_executor_job(
+                requests.get, f"http://{self._ip_address}/stufe.cgi?stufe={value}"
+            )
+            self._attr_native_value = value
+            self.async_write_ha_state()
+
+    async def async_update(self):
+        self._attr_native_value = self._sensor.state
+        self.async_write_ha_state()
