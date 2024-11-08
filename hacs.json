@@ -1,7 +1,7 @@
 {
-  "name": "Lüftungsanlage",
+  "name": "FRÄNKISCHE ROHRWERKE Ventilation System",
   "content_in_root": false,
-  "domains": ["lueftungsanlage"],
+  "domains": ["ventilation_system"],
   "country": "DE",
   "homeassistant": "2024.8.2",
   "render_readme": true

@@ -3,11 +3,11 @@ from homeassistant import config_entries
 from homeassistant.core import callback
 from .const import DOMAIN, CONF_IP_ADDRESS
 
-class LueftungsanlageConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+class VentilationSystemConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @staticmethod
     @callback
     def async_get_options_flow(config_entry):
-        return LueftungsanlageOptionsFlowHandler(config_entry)
+        return VentilationSystemOptionsFlowHandler(config_entry)
 
     async def async_step_user(self, user_input=None):
         if user_input is not None:
@@ -20,7 +20,7 @@ class LueftungsanlageConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             })
         )
 
-class LueftungsanlageOptionsFlowHandler(config_entries.OptionsFlow):
+class VentilationSystemOptionsFlowHandler(config_entries.OptionsFlow):
     def __init__(self, config_entry):
         self.config_entry = config_entry
 

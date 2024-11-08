@@ -10,19 +10,19 @@ from .const import DOMAIN, CONF_IP_ADDRESS
 async def async_setup_entry(hass, entry, async_add_entities):
     ip_address = entry.data[CONF_IP_ADDRESS]
     sensors = [
-        LueftungsanlageSensor(hass, ip_address, "aktuell0", "Lüftungsanlage Stufe", entry.entry_id),
-        LueftungsanlageSensor(hass, ip_address, "abl0", "Lüftungsanlage Abluft Temperatur", entry.entry_id),
-        LueftungsanlageSensor(hass, ip_address, "zul0", "Lüftungsanlage Zuluft Temperatur", entry.entry_id),
-        LueftungsanlageSensor(hass, ip_address, "aul0", "Lüftungsanlage Außenluft Temperatur", entry.entry_id),
-        LueftungsanlageSensor(hass, ip_address, "fol0", "Lüftungsanlage Fortluft Temperatur", entry.entry_id),
-        LueftungsanlageSensor(hass, ip_address, "rest_time", "Lüftungsanlage Filter Restzeit", entry.entry_id),
-        LueftungsanlageSensor(hass, ip_address, "bypass", "Lüftungsanlage Bypass Status", entry.entry_id)
+        VentilationSystemSensor(hass, ip_address, "aktuell0", "Lüftungsanlage Stufe", entry.entry_id),
+        VentilationSystemSensor(hass, ip_address, "abl0", "Lüftungsanlage Abluft Temperatur", entry.entry_id),
+        VentilationSystemSensor(hass, ip_address, "zul0", "Lüftungsanlage Zuluft Temperatur", entry.entry_id),
+        VentilationSystemSensor(hass, ip_address, "aul0", "Lüftungsanlage Außenluft Temperatur", entry.entry_id),
+        VentilationSystemSensor(hass, ip_address, "fol0", "Lüftungsanlage Fortluft Temperatur", entry.entry_id),
+        VentilationSystemSensor(hass, ip_address, "rest_time", "Lüftungsanlage Filter Restzeit", entry.entry_id),
+        VentilationSystemSensor(hass, ip_address, "bypass", "Lüftungsanlage Bypass Status", entry.entry_id)
     ]
     async_add_entities(sensors)
-    await LueftungsanlageSensor.update_all_sensors(sensors)
+    await VentilationSystemSensor.update_all_sensors(sensors)
 
 
-class LueftungsanlageSensor(SensorEntity):
+class VentilationSystemSensor(SensorEntity):
     _shared_data = None
     _last_update = 0
 
@@ -90,7 +90,7 @@ class LueftungsanlageRegler(NumberEntity):
 
     @property
     def name(self):
-        return "Lüftungsanlage Regler"
+        return "Ventilation System Sensor"
 
     @property
     def unique_id(self):

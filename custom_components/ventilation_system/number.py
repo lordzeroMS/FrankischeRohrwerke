@@ -7,9 +7,9 @@ from .const import DOMAIN, CONF_IP_ADDRESS
 
 async def async_setup_entry(hass, entry, async_add_entities):
     ip_address = entry.data[CONF_IP_ADDRESS]
-    async_add_entities([LueftungsanlageRegler(hass, ip_address, entry.entry_id)])
+    async_add_entities([VentilationSystemControl(hass, ip_address, entry.entry_id)])
 
-class LueftungsanlageRegler(NumberEntity):
+class VentilationSystemControl(NumberEntity):
     def __init__(self, hass, ip_address, entry_id):
         self._hass = hass
         self._ip_address = ip_address
@@ -22,11 +22,11 @@ class LueftungsanlageRegler(NumberEntity):
 
     @property
     def name(self):
-        return "Lüftungsanlage Regler"
+        return "Ventilation System Control"
 
     @property
     def unique_id(self):
-        return f"{self._entry_id}_regler"
+        return f"{self._entry_id}_control"
 
     async def async_set_native_value(self, value):
         if 1 <= value <= 4:
