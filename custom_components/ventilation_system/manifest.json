@@ -1,7 +1,7 @@
 {
   "domain": "ventilation_system",
   "name": "Ventilation System",
-  "version": "2024.11.0",
+  "version": "2024.11.1",
   "config_flow": true,
   "documentation": "https://github.com/lordzeroMS/FrankischeRohrwerke",
   "requirements": ["xmltodict"],
