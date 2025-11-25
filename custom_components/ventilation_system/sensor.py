@@ -1,109 +1,234 @@
-import aiohttp
-import async_timeout
-import requests
-import xmltodict
-import time
-from homeassistant.components.sensor import SensorEntity, SensorDeviceClass
-from homeassistant.components.number import NumberEntity, NumberDeviceClass
-from .const import DOMAIN, CONF_IP_ADDRESS
+from __future__ import annotations
 
-async def async_setup_entry(hass, entry, async_add_entities):
-    ip_address = entry.data[CONF_IP_ADDRESS]
-    sensors = [
-        VentilationSystemSensor(hass, ip_address, "aktuell0", "Lüftungsanlage Stufe", entry.entry_id),
-        VentilationSystemSensor(hass, ip_address, "abl0", "Lüftungsanlage Abluft Temperatur", entry.entry_id),
-        VentilationSystemSensor(hass, ip_address, "zul0", "Lüftungsanlage Zuluft Temperatur", entry.entry_id),
-        VentilationSystemSensor(hass, ip_address, "aul0", "Lüftungsanlage Außenluft Temperatur", entry.entry_id),
-        VentilationSystemSensor(hass, ip_address, "fol0", "Lüftungsanlage Fortluft Temperatur", entry.entry_id),
-        VentilationSystemSensor(hass, ip_address, "rest_time", "Lüftungsanlage Filter Restzeit", entry.entry_id),
-        VentilationSystemSensor(hass, ip_address, "bypass", "Lüftungsanlage Bypass Status", entry.entry_id)
-    ]
-    async_add_entities(sensors)
-    await VentilationSystemSensor.update_all_sensors(sensors)
+from dataclasses import dataclass
+from typing import Any, Callable
+
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorEntityDescription,
+    SensorStateClass,
+)
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import UnitOfTemperature, UnitOfTime
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
+
+from .const import CONF_IP_ADDRESS, DATA_COORDINATOR, DOMAIN
+from .coordinator import VentilationDataCoordinator
 
 
-class VentilationSystemSensor(SensorEntity):
-    _shared_data = None
-    _last_update = 0
+@dataclass
+class VentilationSensorEntityDescription(SensorEntityDescription):
+    value_fn: Callable[[dict[str, str]], Any] | None = None
 
-    def __init__(self, hass, ip_address, sensor_type, name, entry_id):
-        self._hass = hass
-        self._ip_address = ip_address
-        self._sensor_type = sensor_type
-        self._name = name
+    def value_from(self, data: dict[str, str]) -> Any:
+        if self.value_fn:
+            return self.value_fn(data)
+        return data.get(self.key)
+
+
+def _as_float(value: str | None) -> float | None:
+    if value is None:
+        return None
+    try:
+        return float(value.replace(",", ".").strip())
+    except (AttributeError, ValueError):
+        return None
+
+
+def _as_int(value: str | None) -> int | None:
+    if value is None:
+        return None
+    try:
+        return int(float(value.strip()))
+    except (AttributeError, ValueError):
+        return None
+
+
+def _stage_value(data: dict[str, str]) -> int | None:
+    raw = data.get("aktuell0")
+    if not raw:
+        return None
+    if "stufe" in raw.lower():
+        try:
+            return int(raw.lower().split("stufe")[1].split()[0])
+        except (IndexError, ValueError):
+            return None
+    return _as_int(raw)
+
+
+SENSORS: tuple[VentilationSensorEntityDescription, ...] = (
+    VentilationSensorEntityDescription(
+        key="aktuell0",
+        name="Ventilation Stage",
+        icon="mdi:fan-speed-1",
+        value_fn=_stage_value,
+    ),
+    VentilationSensorEntityDescription(
+        key="control0",
+        name="Control Mode",
+        icon="mdi:hand-back-left",
+    ),
+    VentilationSensorEntityDescription(
+        key="bypass",
+        name="Bypass Status",
+        icon="mdi:cached",
+    ),
+    VentilationSensorEntityDescription(
+        key="rest_time",
+        name="Filter Remaining Time",
+        native_unit_of_measurement=UnitOfTime.DAYS,
+        device_class=SensorDeviceClass.DURATION,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=_as_int,
+    ),
+    VentilationSensorEntityDescription(
+        key="filtertime",
+        name="Filter Interval",
+        native_unit_of_measurement=UnitOfTime.DAYS,
+        device_class=SensorDeviceClass.DURATION,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=_as_int,
+    ),
+    VentilationSensorEntityDescription(
+        key="filter0",
+        name="Filter Status Text",
+        icon="mdi:air-filter",
+    ),
+    VentilationSensorEntityDescription(
+        key="events",
+        name="Controller Events",
+        icon="mdi:alert",
+    ),
+    VentilationSensorEntityDescription(
+        key="abl0",
+        name="Exhaust Air Temperature",
+        device_class=SensorDeviceClass.TEMPERATURE,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=_as_float,
+    ),
+    VentilationSensorEntityDescription(
+        key="zul0",
+        name="Supply Air Temperature",
+        device_class=SensorDeviceClass.TEMPERATURE,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=_as_float,
+    ),
+    VentilationSensorEntityDescription(
+        key="aul0",
+        name="Outdoor Air Temperature",
+        device_class=SensorDeviceClass.TEMPERATURE,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=_as_float,
+    ),
+    VentilationSensorEntityDescription(
+        key="fol0",
+        name="Exhausted Air Temperature",
+        device_class=SensorDeviceClass.TEMPERATURE,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=_as_float,
+    ),
+    VentilationSensorEntityDescription(
+        key="BsSt1",
+        name="Runtime Stage 1",
+        native_unit_of_measurement=UnitOfTime.HOURS,
+        device_class=SensorDeviceClass.DURATION,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        value_fn=_as_int,
+    ),
+    VentilationSensorEntityDescription(
+        key="BsSt2",
+        name="Runtime Stage 2",
+        native_unit_of_measurement=UnitOfTime.HOURS,
+        device_class=SensorDeviceClass.DURATION,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        value_fn=_as_int,
+    ),
+    VentilationSensorEntityDescription(
+        key="BsSt3",
+        name="Runtime Stage 3",
+        native_unit_of_measurement=UnitOfTime.HOURS,
+        device_class=SensorDeviceClass.DURATION,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        value_fn=_as_int,
+    ),
+    VentilationSensorEntityDescription(
+        key="BsSt4",
+        name="Runtime Stage 4",
+        native_unit_of_measurement=UnitOfTime.HOURS,
+        device_class=SensorDeviceClass.DURATION,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        value_fn=_as_int,
+    ),
+    VentilationSensorEntityDescription(
+        key="partytime",
+        name="Party Mode Duration",
+        native_unit_of_measurement=UnitOfTime.MINUTES,
+        device_class=SensorDeviceClass.DURATION,
+        value_fn=_as_int,
+    ),
+    VentilationSensorEntityDescription(
+        key="BipaAutAUL",
+        name="Bypass Outdoor Threshold",
+        device_class=SensorDeviceClass.TEMPERATURE,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        value_fn=_as_float,
+    ),
+    VentilationSensorEntityDescription(
+        key="BipaAutABL",
+        name="Bypass Exhaust Threshold",
+        device_class=SensorDeviceClass.TEMPERATURE,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        value_fn=_as_float,
+    ),
+)
+
+
+async def async_setup_entry(
+    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+) -> None:
+    entry_data = hass.data[DOMAIN][entry.entry_id]
+    coordinator: VentilationDataCoordinator = entry_data[DATA_COORDINATOR]
+
+    async_add_entities(
+        VentilationSystemSensor(
+            coordinator, entry.entry_id, entry.data[CONF_IP_ADDRESS], description
+        )
+        for description in SENSORS
+    )
+
+
+class VentilationSystemSensor(CoordinatorEntity[VentilationDataCoordinator], SensorEntity):
+    _attr_has_entity_name = True
+
+    def __init__(
+        self,
+        coordinator: VentilationDataCoordinator,
+        entry_id: str,
+        ip_address: str,
+        description: VentilationSensorEntityDescription,
+    ) -> None:
+        super().__init__(coordinator)
+        self.entity_description = description
         self._entry_id = entry_id
-        self._state = None
-        self._attr_device_class = SensorDeviceClass.TEMPERATURE if "Temperatur" in name else None
-        self._attr_unit_of_measurement = "°C" if "Temperatur" in name else None
+        self._attr_unique_id = f"{entry_id}_{description.key}"
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, entry_id)},
+            name="Fraenkische Ventilation",
+            manufacturer="Fraenkische Rohrwerke",
+            model="profi-air",
+            configuration_url=f"http://{ip_address}/",
+        )
 
     @property
-    def name(self):
-        return self._name
-
-    @property
-    def state(self):
-        return self._state
-
-    @property
-    def unique_id(self):
-        return f"{self._entry_id}_{self._sensor_type}"
-
-    @property
-    def unit_of_measurement(self):
-        return self._attr_unit_of_measurement
-
-    @classmethod
-    async def update_all_sensors(cls, sensors):
-        current_time = time.time()
-        if cls._shared_data is None or (current_time - cls._last_update) > 5:
-            async with async_timeout.timeout(10):
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(f"http://{sensors[0]._ip_address}/status.xml") as response:
-                        if response.status == 200:
-                            text = await response.text()
-                            cls._shared_data = xmltodict.parse(text)['response']
-                            cls._last_update = current_time
-        for sensor in sensors:
-            sensor.update_from_shared_data()
-
-    def update_from_shared_data(self):
-        raw_value = self._shared_data.get(self._sensor_type)
-        if self._sensor_type == "aktuell0" and raw_value and "Stufe" in raw_value:
-            self._state = int(raw_value.split("Stufe")[1].split()[0])
-        else:
-            self._state = raw_value
-
-    async def async_update(self):
-        await self.update_all_sensors([self])
-
-class LueftungsanlageRegler(NumberEntity):
-    def __init__(self, hass, ip_address, entry_id, sensor):
-        self._hass = hass
-        self._ip_address = ip_address
-        self._entry_id = entry_id
-        self._sensor = sensor
-        self._attr_native_value = 1  # Default stage
-        self._attr_native_min_value = 1
-        self._attr_native_max_value = 4
-        self._attr_native_step = 1
-        self._attr_device_class = NumberDeviceClass.POWER
-
-    @property
-    def name(self):
-        return "Ventilation System Sensor"
-
-    @property
-    def unique_id(self):
-        return f"{self._entry_id}_regler_2"
-
-    async def async_set_native_value(self, value):
-        if 1 <= value <= 4:
-            await self._hass.async_add_executor_job(
-                requests.get, f"http://{self._ip_address}/stufe.cgi?stufe={value}"
-            )
-            self._attr_native_value = value
-            self.async_write_ha_state()
-
-    async def async_update(self):
-        self._attr_native_value = self._sensor.state
-        self.async_write_ha_state()
+    def native_value(self) -> Any:
+        if not self.coordinator.data:
+            return None
+        return self.entity_description.value_from(self.coordinator.data)

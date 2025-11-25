@@ -1,53 +1,109 @@
+from __future__ import annotations
+
+import asyncio
+
 import aiohttp
 import async_timeout
-import xmltodict
-import requests
-from homeassistant.components.number import NumberEntity, NumberDeviceClass
-from .const import DOMAIN, CONF_IP_ADDRESS
+from homeassistant.components.number import NumberDeviceClass, NumberEntity
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-async def async_setup_entry(hass, entry, async_add_entities):
-    ip_address = entry.data[CONF_IP_ADDRESS]
-    async_add_entities([VentilationSystemControl(hass, ip_address, entry.entry_id)])
+from .const import CONF_IP_ADDRESS, DATA_COORDINATOR, DOMAIN
+from .coordinator import VentilationDataCoordinator
 
-class VentilationSystemControl(NumberEntity):
-    def __init__(self, hass, ip_address, entry_id):
-        self._hass = hass
+
+async def async_setup_entry(
+    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+) -> None:
+    entry_data = hass.data[DOMAIN][entry.entry_id]
+    coordinator: VentilationDataCoordinator = entry_data[DATA_COORDINATOR]
+    async_add_entities(
+        [
+            VentilationSystemControl(
+                coordinator, entry.entry_id, entry.data[CONF_IP_ADDRESS]
+            )
+        ]
+    )
+
+
+class VentilationSystemControl(
+    CoordinatorEntity[VentilationDataCoordinator], NumberEntity
+):
+    _attr_has_entity_name = True
+
+    def __init__(
+        self,
+        coordinator: VentilationDataCoordinator,
+        entry_id: str,
+        ip_address: str,
+    ) -> None:
+        super().__init__(coordinator)
         self._ip_address = ip_address
-        self._entry_id = entry_id
-        self._attr_native_value = 1  # Default stage
+        self._attr_name = "Stage"
+        self._attr_unique_id = f"{entry_id}_stage_control"
         self._attr_native_min_value = 1
         self._attr_native_max_value = 4
         self._attr_native_step = 1
         self._attr_device_class = NumberDeviceClass.POWER
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, entry_id)},
+            name="Fraenkische Ventilation",
+            manufacturer="Fraenkische Rohrwerke",
+            model="profi-air",
+            configuration_url=f"http://{ip_address}/",
+        )
 
-    @property
-    def name(self):
-        return "Ventilation System Control"
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        stage = self._current_stage()
+        if stage is not None:
+            self._attr_native_value = stage
 
-    @property
-    def unique_id(self):
-        return f"{self._entry_id}_control"
+    def _current_stage(self) -> int | None:
+        data = self.coordinator.data
+        if not data:
+            return None
+        raw = data.get("aktuell0")
+        if not raw:
+            return None
+        lower = raw.lower()
+        if "stufe" in lower:
+            try:
+                return int(lower.split("stufe")[1].split()[0])
+            except (IndexError, ValueError):
+                return None
+        try:
+            return int(raw)
+        except (TypeError, ValueError):
+            return None
 
-    async def async_set_native_value(self, value):
-        if 1 <= value <= 4:
-            response = await self._hass.async_add_executor_job(
-                requests.get, f"http://{self._ip_address}/stufe.cgi?stufe={value}"
-            )
-            if response.status_code == 200:
-                self._attr_native_value = value
-                self.async_write_ha_state()
+    async def async_set_native_value(self, value: float) -> None:
+        stage = int(value)
+        await _async_call_stage_endpoint(self.hass, self._ip_address, stage)
+        self._attr_native_value = stage
+        await self.coordinator.async_request_refresh()
 
-    async def fetch_current_value(self):
-        async with async_timeout.timeout(10):
-            async with aiohttp.ClientSession() as session:
-                async with session.get(f"http://{self._ip_address}/status.xml") as response:
-                    if response.status == 200:
-                        text = await response.text()
-                        data = xmltodict.parse(text)['response']
-                        raw_value = data.get("aktuell0")
-                        if raw_value and "Stufe" in raw_value:
-                            self._attr_native_value = int(raw_value.split("Stufe")[1].split()[0])
-                            self.async_write_ha_state()
+    async def async_update(self) -> None:
+        stage = self._current_stage()
+        if stage is not None:
+            self._attr_native_value = stage
 
-    async def async_update(self):
-        await self.fetch_current_value()
+
+async def _async_call_stage_endpoint(
+    hass: HomeAssistant, host: str, stage: int
+) -> None:
+    session = async_get_clientsession(hass)
+    url = f"http://{host}/stufe.cgi?stufe={stage}"
+    try:
+        async with async_timeout.timeout(15):
+            response = await session.get(url)
+            response.raise_for_status()
+    except asyncio.TimeoutError as err:
+        raise HomeAssistantError(f"Timeout calling {url}") from err
+    except aiohttp.ClientError as err:
+        raise HomeAssistantError(f"Stage request failed: {err}") from err
