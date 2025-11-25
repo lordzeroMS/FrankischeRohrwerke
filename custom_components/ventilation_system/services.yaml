@@ -1,0 +1,114 @@
+set_stage:
+  name: Set stage
+  description: Set the ventilation system to the requested stage.
+  fields:
+    entity_id:
+      name: Entity
+      description: Any entity provided by the ventilation system integration.
+      required: true
+      selector:
+        entity:
+          integration: ventilation_system
+    stage:
+      name: Stage
+      description: Desired fan stage between 1 and 4.
+      required: true
+      example: 2
+      selector:
+        number:
+          min: 1
+          max: 4
+          step: 1
+          mode: slider
+
+set_bypass_mode:
+  name: Set bypass mode
+  description: Control the bypass flap mode of the ventilation system.
+  fields:
+    entity_id:
+      name: Entity
+      description: Any entity provided by the ventilation system integration.
+      required: true
+      selector:
+        entity:
+          integration: ventilation_system
+    mode:
+      name: Mode
+      description: Select the desired bypass operation mode.
+      required: true
+      example: auto
+      selector:
+        select:
+          options:
+            - label: Automatic
+              value: auto
+            - label: Manual open
+              value: manual_open
+            - label: Manual close
+              value: manual_close
+
+set_week_program:
+  name: Configure week program
+  description: Program the automatic weekly schedule of the ventilation controller.
+  fields:
+    entity_id:
+      name: Entity
+      description: Any entity provided by the ventilation system integration.
+      required: true
+      selector:
+        entity:
+          integration: ventilation_system
+    program:
+      name: Program slot
+      description: Week program slot to configure (1-10, where 10 represents continuous operation).
+      required: true
+      example: 1
+      selector:
+        number:
+          min: 1
+          max: 10
+          step: 1
+    stage:
+      name: Stage
+      description: Ventilation stage that should run during the program.
+      required: true
+      example: 2
+      selector:
+        number:
+          min: 1
+          max: 3
+          step: 1
+    start:
+      name: Start time
+      description: When the program should start.
+      required: true
+      selector:
+        time:
+    stop:
+      name: Stop time
+      description: When the program should stop.
+      required: true
+      selector:
+        time:
+    days:
+      name: Active days
+      description: Weekdays for which the program should run.
+      required: true
+      selector:
+        select:
+          multiple: true
+          options:
+            - label: Monday
+              value: mon
+            - label: Tuesday
+              value: tue
+            - label: Wednesday
+              value: wed
+            - label: Thursday
+              value: thu
+            - label: Friday
+              value: fri
+            - label: Saturday
+              value: sat
+            - label: Sunday
+              value: sun
