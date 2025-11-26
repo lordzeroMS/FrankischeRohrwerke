@@ -34,16 +34,31 @@ class VentilationSensorEntityDescription(SensorEntityDescription):
 _NUMBER_RE = re.compile(r"-?\d+(?:[.,]\d+)?")
 
 
-def _extract_number(value: str | None) -> str | None:
+def _value_as_text(value: Any) -> str | None:
     if value is None:
         return None
-    match = _NUMBER_RE.search(value)
+    if isinstance(value, (int, float)):
+        return str(value)
+    if isinstance(value, dict):
+        # xmltodict wraps element content in "#text" when attributes exist
+        text = value.get("#text") or value.get("text")
+        if text is None:
+            return None
+        return str(text)
+    return str(value)
+
+
+def _extract_number(value: Any) -> str | None:
+    text = _value_as_text(value)
+    if text is None:
+        return None
+    match = _NUMBER_RE.search(text)
     if not match:
         return None
     return match.group(0)
 
 
-def _as_float(value: str | None) -> float | None:
+def _as_float(value: Any) -> float | None:
     numeric = _extract_number(value)
     if numeric is None:
         return None
@@ -53,7 +68,7 @@ def _as_float(value: str | None) -> float | None:
         return None
 
 
-def _as_int(value: str | None) -> int | None:
+def _as_int(value: Any) -> int | None:
     numeric = _extract_number(value)
     if numeric is None:
         return None
@@ -64,15 +79,16 @@ def _as_int(value: str | None) -> int | None:
 
 
 def _stage_value(data: dict[str, str]) -> int | None:
-    raw = data.get("aktuell0")
-    if not raw:
+    raw_value = _value_as_text(data.get("aktuell0"))
+    if not raw_value:
         return None
-    if "stufe" in raw.lower():
+    lower = raw_value.lower()
+    if "stufe" in lower:
         try:
-            return int(raw.lower().split("stufe")[1].split()[0])
+            return int(lower.split("stufe")[1].split()[0])
         except (IndexError, ValueError):
             return None
-    return _as_int(raw)
+    return _as_int(raw_value)
 
 
 SENSORS: tuple[VentilationSensorEntityDescription, ...] = (
