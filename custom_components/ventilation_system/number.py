@@ -15,6 +15,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import CONF_IP_ADDRESS, DATA_COORDINATOR, DOMAIN
 from .coordinator import VentilationDataCoordinator
+from .parser import stage_value
 
 
 async def async_setup_entry(
@@ -68,19 +69,7 @@ class VentilationSystemControl(
         data = self.coordinator.data
         if not data:
             return None
-        raw = data.get("aktuell0")
-        if not raw:
-            return None
-        lower = raw.lower()
-        if "stufe" in lower:
-            try:
-                return int(lower.split("stufe")[1].split()[0])
-            except (IndexError, ValueError):
-                return None
-        try:
-            return int(raw)
-        except (TypeError, ValueError):
-            return None
+        return stage_value(data.get("aktuell0"))
 
     async def async_set_native_value(self, value: float) -> None:
         stage = int(value)

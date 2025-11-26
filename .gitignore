@@ -1,1 +1,5 @@
 /custom_components/ventilation_system/test.txt
+custom_components/__pycache__/
+custom_components/ventilation_system/__pycache__/
+.pytest_cache/
+tests/__pycache__/

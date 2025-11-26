@@ -1,0 +1,129 @@
+<response>
+<stufe1>0</stufe1>
+<stufe2>1</stufe2>
+<stufe3>0</stufe3>
+<stufe4>0</stufe4>
+<aktuell0>Stufe2 Abwesend</aktuell0>
+<control0>manuelle Stufenwahl</control0>
+<bypass>Auto: Zu   </bypass>
+<SprachWahl>Deutsch        </SprachWahl>
+<partytime>87</partytime>
+<BipaAutAUL> 13.0</BipaAutAUL>
+<BipaAutABL> 23.0</BipaAutABL>
+<installtyp>Eigenheim</installtyp>
+<vorheiz>Passiv </vorheiz>
+<nachlauf>5</nachlauf>
+<safety>Nicht aktiv </safety>
+<S1amb0>0</S1amb0>
+<S2amb0>0</S2amb0>
+<S3amb0>0</S3amb0>
+<S4amb0>0</S4amb0>
+<sensortyp1>Nicht aktiv </sensortyp1>
+<sensortyp2>Nicht aktiv </sensortyp2>
+<sensortyp3>Nicht aktiv </sensortyp3>
+<sensortyp4>Nicht aktiv </sensortyp4>
+<abl0> 20.0</abl0>
+<zul0> 18.4</zul0>
+<aul0> 06.8</aul0>
+<fol0> 10.4</fol0>
+<DiIn1>Aus</DiIn1>
+<DiIn2>Aus</DiIn2>
+<DiIn3>Ein</DiIn3>
+<MoStZlUm>1813</MoStZlUm>
+<MoStZlVo>45</MoStZlVo>
+<MoStAlUm>1631</MoStAlUm>
+<MoStAlVo>40</MoStAlVo>
+<kor1>     00</kor1>
+<kor2>     00</kor2>
+<kor3>     00</kor3>
+<kor4>     00</kor4>
+<filtertime>180</filtertime>
+<rest_time>0</rest_time>
+<cannumber>1</cannumber>
+<passiv>Aus</passiv>
+<PassivHE> 16.0</PassivHE>
+<PassivHA> 18.0</PassivHA>
+<BsSt1>9213</BsSt1>
+<BsSt2>16403</BsSt2>
+<BsSt3>11320</BsSt3>
+<BsSt4>7009</BsSt4>
+<BsFs>230</BsFs>
+<BsVhr>0</BsVhr>
+<sensor0>Aus</sensor0>
+<filter0>F1:Filterwechsel  </filter0>
+<st1z>26</st1z>
+<st1a>23</st1a>
+<st2z>45</st2z>
+<st2a>40</st2a>
+<st3z>62</st3z>
+<st3a>58</st3a>
+<st4z>84</st4z>
+<st4a>75</st4a>
+<enocean>-</enocean>
+<on_email_off>Aus</on_email_off>
+<name_email>?</name_email>
+<strasse_email>?</strasse_email>
+<plz_email>?</plz_email>
+<ort_email>?</ort_email>
+<tel_email>?</tel_email>
+<e_kunde_email>?</e_kunde_email>
+<e_monteur_email>?</e_monteur_email>
+<soze>Sommerzeit   </soze>
+<time>13:13:41</time>
+<date>Mi, 26.11.2025</date>
+<meldung>HA=Hand  </meldung>
+<events>F1:Filterwechsel  </events>
+<config_ip>192.168.1.183</config_ip>
+<config_mac>54:10:EC:8E:8D:05</config_mac>
+<grundst>Stufe 2  </grundst>
+<st1Z_f>18</st1Z_f>
+<st1A_f>100</st1A_f>
+<st2Z_f>18</st2Z_f>
+<st2A_f>100</st2A_f>
+<st3Z_f>18</st3Z_f>
+<st3A_f>100</st3A_f>
+<st4Z_f>18</st4Z_f>
+<st4A_f>100</st4A_f>
+<vhrtyp>Test VHR Aus</vhrtyp>
+<korr_f>99</korr_f>
+<korr_co>99</korr_co>
+<s_feu_3>60</s_feu_3>
+<s_co_3>1000</s_co_3>
+<s_feu_4>85</s_feu_4>
+<s_co_4>1500</s_co_4>
+<party_von>10</party_von>
+<party_bis>120</party_bis>
+<bp_temp>20</bp_temp>
+<fs_para1>5</fs_para1>
+<fs_para2>     00</fs_para2>
+<fs_para3>1</fs_para3>
+<fs_para4>177</fs_para4>
+<fs_para5>167</fs_para5>
+<fs_para6>150</fs_para6>
+<fs_para7>100</fs_para7>
+<fs_para8>100</fs_para8>
+<fs_para9>27</fs_para9>
+<fs_para10>25</fs_para10>
+<fs_para11>60</fs_para11>
+<fs_para12>60</fs_para12>
+<fs_para13>5</fs_para13>
+<fs_para14>     00</fs_para14>
+<fs_para15>&#43;0.8</fs_para15>
+<fs_para16>70</fs_para16>
+<fs_para17>10</fs_para17>
+<fs_para18>60</fs_para18>
+<fs_para19>60</fs_para19>
+<fs_para20>60</fs_para20>
+<prg1>Stufe 2  </prg1>
+<prg_start1>20:00</prg_start1>
+<prg_stop1>23:59</prg_stop1>
+<prg_wota1>Mo,Di,Mi,Do,Fr,Sa,So</prg_wota1>
+<prg2>Stufe 2  </prg2>
+<prg_start2>00:01</prg_start2>
+<prg_stop2>05:00</prg_stop2>
+<prg_wota2>Mo,Di,Mi,Do,Fr,Sa,So</prg_wota2>
+<prg3>Aus</prg3>
+<prg_start3>00:00</prg_start3>
+<prg_stop3>00:00</prg_stop3>
+<prg_wota3>-</prg_wota3>
+</response>

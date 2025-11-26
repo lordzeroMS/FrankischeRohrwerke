@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-import re
 from typing import Any, Callable
 
 from homeassistant.components.sensor import (
@@ -19,89 +18,21 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import CONF_IP_ADDRESS, DATA_COORDINATOR, DOMAIN
 from .coordinator import VentilationDataCoordinator
+from .parser import as_float, as_int, stage_value, value_as_text
 
 
 @dataclass
 class VentilationSensorEntityDescription(SensorEntityDescription):
     value_fn: Callable[[dict[str, str]], Any] | None = None
+    value_transform: Callable[[Any], Any] | None = None
 
     def value_from(self, data: dict[str, str]) -> Any:
         if self.value_fn:
             return self.value_fn(data)
-        return data.get(self.key)
-
-
-_NUMBER_RE = re.compile(r"-?\d+(?:[.,]\d+)?")
-
-
-def _value_as_text(value: Any) -> str | None:
-    if value is None:
-        return None
-    if isinstance(value, (int, float)):
-        return str(value)
-    if isinstance(value, (list, tuple)):
-        for item in value:
-            text = _value_as_text(item)
-            if text is not None:
-                return text
-        return None
-    if isinstance(value, dict):
-        # xmltodict wraps element content in "#text" when attributes exist
-        text = value.get("#text") or value.get("text")
-        if text is None:
-            # try nested values (e.g. {"value": {"#text": "12"}})
-            for nested_value in value.values():
-                text = _value_as_text(nested_value)
-                if text is not None:
-                    return text
-            return None
-        return str(text)
-    return str(value)
-
-
-def _extract_number(value: Any) -> str | None:
-    text = _value_as_text(value)
-    if text is None:
-        return None
-    if not isinstance(text, str):
-        text = str(text)
-    match = _NUMBER_RE.search(text)
-    if not match:
-        return None
-    return match.group(0)
-
-
-def _as_float(value: Any) -> float | None:
-    numeric = _extract_number(value)
-    if numeric is None:
-        return None
-    try:
-        return float(numeric.replace(",", "."))
-    except ValueError:
-        return None
-
-
-def _as_int(value: Any) -> int | None:
-    numeric = _extract_number(value)
-    if numeric is None:
-        return None
-    try:
-        return int(float(numeric.replace(",", ".")))
-    except ValueError:
-        return None
-
-
-def _stage_value(data: dict[str, str]) -> int | None:
-    raw_value = _value_as_text(data.get("aktuell0"))
-    if not raw_value:
-        return None
-    lower = raw_value.lower()
-    if "stufe" in lower:
-        try:
-            return int(lower.split("stufe")[1].split()[0])
-        except (IndexError, ValueError):
-            return None
-    return _as_int(raw_value)
+        value = data.get(self.key)
+        if self.value_transform:
+            return self.value_transform(value)
+        return value_as_text(value)
 
 
 SENSORS: tuple[VentilationSensorEntityDescription, ...] = (
@@ -109,7 +40,7 @@ SENSORS: tuple[VentilationSensorEntityDescription, ...] = (
         key="aktuell0",
         name="Ventilation Stage",
         icon="mdi:fan-speed-1",
-        value_fn=_stage_value,
+        value_transform=stage_value,
     ),
     VentilationSensorEntityDescription(
         key="control0",
@@ -127,7 +58,7 @@ SENSORS: tuple[VentilationSensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfTime.DAYS,
         device_class=SensorDeviceClass.DURATION,
         state_class=SensorStateClass.MEASUREMENT,
-        value_fn=_as_int,
+        value_transform=as_int,
     ),
     VentilationSensorEntityDescription(
         key="filtertime",
@@ -135,7 +66,7 @@ SENSORS: tuple[VentilationSensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfTime.DAYS,
         device_class=SensorDeviceClass.DURATION,
         state_class=SensorStateClass.MEASUREMENT,
-        value_fn=_as_int,
+        value_transform=as_int,
     ),
     VentilationSensorEntityDescription(
         key="filter0",
@@ -153,7 +84,7 @@ SENSORS: tuple[VentilationSensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.TEMPERATURE,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         state_class=SensorStateClass.MEASUREMENT,
-        value_fn=_as_float,
+        value_transform=as_float,
     ),
     VentilationSensorEntityDescription(
         key="zul0",
@@ -161,7 +92,7 @@ SENSORS: tuple[VentilationSensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.TEMPERATURE,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         state_class=SensorStateClass.MEASUREMENT,
-        value_fn=_as_float,
+        value_transform=as_float,
     ),
     VentilationSensorEntityDescription(
         key="aul0",
@@ -169,7 +100,7 @@ SENSORS: tuple[VentilationSensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.TEMPERATURE,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         state_class=SensorStateClass.MEASUREMENT,
-        value_fn=_as_float,
+        value_transform=as_float,
     ),
     VentilationSensorEntityDescription(
         key="fol0",
@@ -177,7 +108,7 @@ SENSORS: tuple[VentilationSensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.TEMPERATURE,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         state_class=SensorStateClass.MEASUREMENT,
-        value_fn=_as_float,
+        value_transform=as_float,
     ),
     VentilationSensorEntityDescription(
         key="BsSt1",
@@ -185,7 +116,7 @@ SENSORS: tuple[VentilationSensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfTime.HOURS,
         device_class=SensorDeviceClass.DURATION,
         state_class=SensorStateClass.TOTAL_INCREASING,
-        value_fn=_as_int,
+        value_transform=as_int,
     ),
     VentilationSensorEntityDescription(
         key="BsSt2",
@@ -193,7 +124,7 @@ SENSORS: tuple[VentilationSensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfTime.HOURS,
         device_class=SensorDeviceClass.DURATION,
         state_class=SensorStateClass.TOTAL_INCREASING,
-        value_fn=_as_int,
+        value_transform=as_int,
     ),
     VentilationSensorEntityDescription(
         key="BsSt3",
@@ -201,7 +132,7 @@ SENSORS: tuple[VentilationSensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfTime.HOURS,
         device_class=SensorDeviceClass.DURATION,
         state_class=SensorStateClass.TOTAL_INCREASING,
-        value_fn=_as_int,
+        value_transform=as_int,
     ),
     VentilationSensorEntityDescription(
         key="BsSt4",
@@ -209,28 +140,28 @@ SENSORS: tuple[VentilationSensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfTime.HOURS,
         device_class=SensorDeviceClass.DURATION,
         state_class=SensorStateClass.TOTAL_INCREASING,
-        value_fn=_as_int,
+        value_transform=as_int,
     ),
     VentilationSensorEntityDescription(
         key="partytime",
         name="Party Mode Duration",
         native_unit_of_measurement=UnitOfTime.MINUTES,
         device_class=SensorDeviceClass.DURATION,
-        value_fn=_as_int,
+        value_transform=as_int,
     ),
     VentilationSensorEntityDescription(
         key="BipaAutAUL",
         name="Bypass Outdoor Threshold",
         device_class=SensorDeviceClass.TEMPERATURE,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-        value_fn=_as_float,
+        value_transform=as_float,
     ),
     VentilationSensorEntityDescription(
         key="BipaAutABL",
         name="Bypass Exhaust Threshold",
         device_class=SensorDeviceClass.TEMPERATURE,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-        value_fn=_as_float,
+        value_transform=as_float,
     ),
 )
 
