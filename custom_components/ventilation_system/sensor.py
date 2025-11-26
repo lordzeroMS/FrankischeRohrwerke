@@ -39,10 +39,21 @@ def _value_as_text(value: Any) -> str | None:
         return None
     if isinstance(value, (int, float)):
         return str(value)
+    if isinstance(value, (list, tuple)):
+        for item in value:
+            text = _value_as_text(item)
+            if text is not None:
+                return text
+        return None
     if isinstance(value, dict):
         # xmltodict wraps element content in "#text" when attributes exist
         text = value.get("#text") or value.get("text")
         if text is None:
+            # try nested values (e.g. {"value": {"#text": "12"}})
+            for nested_value in value.values():
+                text = _value_as_text(nested_value)
+                if text is not None:
+                    return text
             return None
         return str(text)
     return str(value)
@@ -52,6 +63,8 @@ def _extract_number(value: Any) -> str | None:
     text = _value_as_text(value)
     if text is None:
         return None
+    if not isinstance(text, str):
+        text = str(text)
     match = _NUMBER_RE.search(text)
     if not match:
         return None
