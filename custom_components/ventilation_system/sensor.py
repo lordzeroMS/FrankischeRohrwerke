@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import re
 from typing import Any, Callable
 
 from homeassistant.components.sensor import (
@@ -30,21 +31,35 @@ class VentilationSensorEntityDescription(SensorEntityDescription):
         return data.get(self.key)
 
 
-def _as_float(value: str | None) -> float | None:
+_NUMBER_RE = re.compile(r"-?\d+(?:[.,]\d+)?")
+
+
+def _extract_number(value: str | None) -> str | None:
     if value is None:
         return None
+    match = _NUMBER_RE.search(value)
+    if not match:
+        return None
+    return match.group(0)
+
+
+def _as_float(value: str | None) -> float | None:
+    numeric = _extract_number(value)
+    if numeric is None:
+        return None
     try:
-        return float(value.replace(",", ".").strip())
-    except (AttributeError, ValueError):
+        return float(numeric.replace(",", "."))
+    except ValueError:
         return None
 
 
 def _as_int(value: str | None) -> int | None:
-    if value is None:
+    numeric = _extract_number(value)
+    if numeric is None:
         return None
     try:
-        return int(float(value.strip()))
-    except (AttributeError, ValueError):
+        return int(float(numeric.replace(",", ".")))
+    except ValueError:
         return None
 
 
